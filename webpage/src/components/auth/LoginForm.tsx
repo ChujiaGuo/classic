@@ -23,10 +23,10 @@ export default function LoginForm({ onSwitch }: Props) {
         try {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const idToken = await userCredential.user.getIdToken();
-
-            await fetch("/api/session", {
+            await fetch(`${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/session`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                credentials: "include",
                 body: JSON.stringify({ idToken }),
             });
 
@@ -50,7 +50,7 @@ export default function LoginForm({ onSwitch }: Props) {
         try {
             const userCredential = await signInWithPopup(auth, provider);
             const idToken = await userCredential.user.getIdToken();
-            await fetch("/api/session", {
+            await fetch(`${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/session`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ idToken }),

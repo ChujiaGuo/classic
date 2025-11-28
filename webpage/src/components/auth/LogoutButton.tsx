@@ -8,9 +8,13 @@ export default function LogoutButton() {
 
     const handleLogout = async () => {
         try {
-            await fetch("/api/logout", { method: "POST" });
+            await fetch(`${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/logout`, {
+                method: "POST",
+                credentials: "include",
+            });
             const auth = getAuth();
             await signOut(auth);
+            
             router.push("/");
         } catch (err) {
             console.error("Logout failed:", err);

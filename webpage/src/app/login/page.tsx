@@ -26,19 +26,28 @@ export default function Login() {
     const auth = getAuth();
     const router = useRouter();
     const [authMode, setAuthMode] = useState<AuthMode>("login");
-
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            if (user) {
-                router.push("/dashboard");
-            } else {
+        const checkSession = async () => {
+            try {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/auth`, {
+                    method: "GET",
+                    credentials: "include",
+                    cache: "no-store",
+                });
+                if (res.ok) {
+                    router.push("/dashboard");
+                } else {
+                    setLoading(false);
+                }
+            } catch {
                 setLoading(false);
             }
-        });
-        return () => unsubscribe();
-    }, [auth, router]);
+        };
+
+        checkSession();
+    }, [router]);
 
     if (loading) return <Loading />;
 
