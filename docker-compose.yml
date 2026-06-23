@@ -1,0 +1,41 @@
+services:
+  gateway:
+    build: ./gateway
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./gateway/classic-webpage-auth.json:/app/classic-webpage-auth.json:ro
+    environment:
+      PORT: "8000"
+      ENV: development
+      WEBPAGE_URL: "http://localhost:3000"
+      PARSER_URL: "http://parser:4000"
+      GOOGLE_APPLICATION_CREDENTIALS: /app/classic-webpage-auth.json
+
+  parser:
+    build: ./parser
+    ports:
+      - "4000:4000"
+    env_file:
+      - ./parser/.env
+
+  webpage:
+    build:
+      context: ./webpage
+      args:
+        NEXT_PUBLIC_FIREBASE_API_KEY: ${NEXT_PUBLIC_FIREBASE_API_KEY}
+        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}
+        NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${NEXT_PUBLIC_FIREBASE_PROJECT_ID}
+        NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET}
+        NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID}
+        NEXT_PUBLIC_FIREBASE_APP_ID: ${NEXT_PUBLIC_FIREBASE_APP_ID}
+        NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: ${NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID}
+        NEXT_PUBLIC_API_GATEWAY_URL: "http://localhost:8000"
+    ports:
+      - "3000:3000"
+    environment:
+      # Server-side only — Next.js uses this for SSR fetches inside Docker.
+      # Client-side code uses NEXT_PUBLIC_API_GATEWAY_URL baked in at build time.
+      API_GATEWAY_URL: "http://gateway:8000"
+    depends_on:
+      - gateway
