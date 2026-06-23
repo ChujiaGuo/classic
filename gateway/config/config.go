@@ -12,6 +12,7 @@ type Config struct {
 	GoogleApplicationCredentials string
 	Port                         string
 	WebpageURL                   string
+	ParserURL                    string
 }
 
 func Load() Config {
@@ -19,11 +20,17 @@ func Load() Config {
 		log.Println("No .env file found, using environment variables")
 	}
 
+	parserURL := os.Getenv("PARSER_URL")
+	if parserURL == "" {
+		parserURL = "http://localhost:4000"
+	}
+
 	cfg := Config{
 		Env:                          os.Getenv("ENV"),
 		GoogleApplicationCredentials: os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"),
 		Port:                         os.Getenv("PORT"),
 		WebpageURL:                   os.Getenv("WEBPAGE_URL"),
+		ParserURL:                    parserURL,
 	}
 
 	if cfg.GoogleApplicationCredentials == "" {

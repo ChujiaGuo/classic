@@ -14,7 +14,9 @@ import (
 func main() {
 	cfg := config.Load()                 // Load Configs
 	authClient := auth.InitFirebase(cfg) // Initialize Firebase Auth
-	app := fiber.New()                   // Initialize Fiber
+	app := fiber.New(fiber.Config{
+		BodyLimit: 25 * 1024 * 1024, // 25 MB to pass PDF uploads through to the parser
+	})
 	app.Use(logger.New())                // Logging
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     cfg.WebpageURL,
