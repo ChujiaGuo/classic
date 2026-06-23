@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import LogoutButton from "@/components/auth/LogoutButton";
+import SyllabusUpload from "@/components/syllabus/SyllabusUpload";
 
 export default async function DashboardPage() {
     const cookieStore = await cookies();
@@ -9,7 +10,7 @@ export default async function DashboardPage() {
 
     let user;
     try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/auth`, {
+        const res = await fetch(`${process.env.API_GATEWAY_URL}/api/auth`, {
             method: "GET",
             headers: { cookie: `session=${session}` },
             cache: "no-store",
@@ -25,11 +26,12 @@ export default async function DashboardPage() {
 
 
     return (
-        <div className="flex flex-col items-center justify-center p-8">
-            <h1>Welcome, {user.email}</h1>
-            <div className="mt-4">
+        <div className="flex flex-col items-center p-8 gap-8">
+            <div className="w-full max-w-2xl flex items-center justify-between">
+                <h1 className="text-xl font-semibold">Welcome, {user.email}</h1>
                 <LogoutButton />
             </div>
+            <SyllabusUpload />
         </div>
     );
 }

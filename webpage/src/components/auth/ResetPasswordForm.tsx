@@ -3,7 +3,7 @@
 import { useState, FormEvent } from "react";
 import { getAuth, sendPasswordResetEmail } from "firebase/auth";
 import { FirebaseError } from "firebase/app";
-import { AuthMode } from "@/app/login/page";
+import { AuthMode } from "@/types/auth";
 
 interface Props {
     onSwitch: (mode: AuthMode) => void;

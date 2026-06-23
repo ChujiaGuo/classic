@@ -1,29 +1,16 @@
 "use client"
 
-import { initializeApp, getApps } from "firebase/app";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
+export const dynamic = "force-dynamic";
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import LoginForm from "@/components/auth/LoginForm";
 import CreateAccountForm from "@/components/auth/CreateAccountForm";
 import ResetPasswordForm from "@/components/auth/ResetPasswordForm";
 import Loading from "@/components/generic/Loading";
+import { AuthMode } from "@/types/auth";
 
-const firebaseConfig = {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
-};
-
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
-
-export type AuthMode = "login" | "create" | "reset";
 export default function Login() {
-    const auth = getAuth();
     const router = useRouter();
     const [authMode, setAuthMode] = useState<AuthMode>("login");
     const [loading, setLoading] = useState(true);
