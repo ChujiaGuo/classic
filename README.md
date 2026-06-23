@@ -82,9 +82,24 @@ docker compose up --build
 
 ## Testing
 
-Parser tests run without a live LLM — all LLM calls are intercepted by a mock server.
+### Parser
+
+Runs without a live LLM — all LLM calls are intercepted by a mock server.
 
 ```sh
 cd parser
 go test ./tests/... -v
 ```
+
+### Webpage (Playwright Component Tests)
+
+Renders components in a real Chromium browser. No gateway, parser, or Ollama needed.
+
+```sh
+cd webpage
+npm test              # headless, all tests
+npm run test:ui       # visual UI — step through each test and see the rendered component
+npm run test:headed   # headed mode — browser window visible during the run
+```
+
+First run installs the browser automatically. Reports are written to `webpage/playwright-report/`.
