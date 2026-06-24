@@ -1,18 +1,20 @@
 "use client";
 
 import { useRef, useState } from "react";
+import type { ParsedSyllabus } from "@/types/syllabus";
+import SyllabusView from "./SyllabusView";
 
 export default function SyllabusUpload() {
     const [file, setFile] = useState<File | null>(null);
     const [loading, setLoading] = useState(false);
-    const [result, setResult] = useState<string | null>(null);
+    const [syllabus, setSyllabus] = useState<ParsedSyllabus | null>(null);
     const [error, setError] = useState<string | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
     const handleUpload = async () => {
         if (!file) return;
         setLoading(true);
-        setResult(null);
+        setSyllabus(null);
         setError(null);
 
         try {
@@ -28,7 +30,7 @@ export default function SyllabusUpload() {
             if (!res.ok) {
                 setError(data.error ?? "Parse failed");
             } else {
-                setResult(JSON.stringify(data, null, 2));
+                setSyllabus(data as ParsedSyllabus);
             }
         } catch {
             setError("Request failed — is the gateway running?");
@@ -37,46 +39,56 @@ export default function SyllabusUpload() {
         }
     };
 
-    return (
-        <div className="w-full max-w-2xl flex flex-col gap-4">
-            <h2 className="text-lg font-semibold">Upload Syllabus</h2>
+    const reset = () => {
+        setSyllabus(null);
+        setFile(null);
+        setError(null);
+        if (inputRef.current) inputRef.current.value = "";
+    };
 
-            <div className="flex gap-3 items-center">
+    if (syllabus) {
+        return <SyllabusView syllabus={syllabus} onReset={reset} />;
+    }
+
+    return (
+        <div className="flex-1 flex items-center justify-center">
+            <div className="w-full max-w-md flex flex-col gap-5 p-8 rounded-2xl border border-neutral-200 bg-white shadow-sm">
+                <div>
+                    <h2 className="text-base font-semibold text-neutral-900">Parse a syllabus</h2>
+                    <p className="text-sm text-neutral-500 mt-1">
+                        Upload a PDF or text file and Classic will extract your schedule, assignments, and exams.
+                    </p>
+                </div>
+
                 <input
                     ref={inputRef}
                     type="file"
                     accept=".pdf,.txt"
-                    className="flex-1 text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-sm file:bg-neutral-100 file:text-neutral-700 hover:file:bg-neutral-200 cursor-pointer"
+                    className="text-sm text-neutral-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:bg-neutral-100 file:text-neutral-700 hover:file:bg-neutral-200 cursor-pointer"
                     onChange={(e) => {
                         setFile(e.target.files?.[0] ?? null);
-                        setResult(null);
                         setError(null);
                     }}
                 />
+
                 <button
                     onClick={handleUpload}
                     disabled={!file || loading}
-                    className="px-4 py-1.5 rounded bg-neutral-800 text-white text-sm disabled:opacity-40 hover:bg-neutral-700 transition-colors whitespace-nowrap"
+                    className="w-full py-2 rounded-lg bg-neutral-900 text-white text-sm font-medium disabled:opacity-40 hover:bg-neutral-700 transition-colors"
                 >
-                    {loading ? "Parsing…" : "Parse"}
+                    {loading ? "Parsing…" : "Parse syllabus"}
                 </button>
+
+                {loading && (
+                    <p className="text-xs text-neutral-400 text-center animate-pulse">
+                        Sending to Parser — this may take a minute for large syllabi…
+                    </p>
+                )}
+
+                {error && (
+                    <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">{error}</p>
+                )}
             </div>
-
-            {loading && (
-                <p className="text-sm text-neutral-500 animate-pulse">
-                    Sending to LLM — this may take up to a minute for long syllabi…
-                </p>
-            )}
-
-            {error && (
-                <p className="text-sm text-red-500">{error}</p>
-            )}
-
-            {result && (
-                <pre className="w-full overflow-auto rounded border border-neutral-200 bg-neutral-50 p-4 text-xs leading-relaxed text-neutral-800 max-h-[60vh]">
-                    {result}
-                </pre>
-            )}
         </div>
     );
 }
