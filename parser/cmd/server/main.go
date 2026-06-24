@@ -12,6 +12,7 @@ import (
 	"google.golang.org/api/option"
 
 	"parser/config"
+	"parser/internal/cache"
 	"parser/internal/handler"
 	"parser/internal/parser"
 )
@@ -36,7 +37,14 @@ func main() {
 		p = parser.NewOllamaParser(cfg.OllamaBaseURL, cfg.OllamaModel, cfg.OllamaNumCtx)
 	}
 
-	h := handler.New(p)
+	c, err := cache.New(cfg.CachePath)
+	if err != nil {
+		log.Fatalf("Failed to open cache: %v", err)
+	}
+	defer c.Close()
+	log.Printf("Cache: %s", cfg.CachePath)
+
+	h := handler.New(p, c)
 
 	app := fiber.New(fiber.Config{
 		BodyLimit: 20 * 1024 * 1024, // 20 MB for PDF uploads

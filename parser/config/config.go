@@ -8,6 +8,10 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// CacheSchemaVersion must be bumped whenever the system prompt or ParsedSyllabus
+// schema changes, so stale cache entries are not returned.
+const CacheSchemaVersion = "1"
+
 type Provider string
 
 const (
@@ -25,6 +29,7 @@ type Config struct {
 	OllamaBaseURL   string
 	OllamaModel     string
 	OllamaNumCtx    int
+	CachePath       string
 }
 
 func Load() Config {
@@ -85,6 +90,11 @@ func Load() Config {
 		port = "4000"
 	}
 
+	cachePath := os.Getenv("CACHE_PATH")
+	if cachePath == "" {
+		cachePath = "./cache.db"
+	}
+
 	return Config{
 		Port:            port,
 		Env:             os.Getenv("ENV"),
@@ -94,5 +104,6 @@ func Load() Config {
 		OllamaBaseURL:   ollamaBaseURL,
 		OllamaModel:     ollamaModel,
 		OllamaNumCtx:    ollamaNumCtx,
+		CachePath:       cachePath,
 	}
 }

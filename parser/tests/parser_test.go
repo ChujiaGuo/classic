@@ -12,6 +12,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"parser/config"
+	"parser/internal/cache"
 	"parser/internal/handler"
 	"parser/internal/parser"
 )
@@ -53,6 +54,18 @@ func (m *mockParser) ParseText(_ context.Context, _ string) (*parser.ParsedSylla
 }
 func (m *mockParser) ParsePDF(_ context.Context, _ []byte) (*parser.ParsedSyllabus, error) {
 	return &parser.ParsedSyllabus{ClassName: "Mock Class"}, nil
+}
+
+// countingParser records how many times the LLM was called.
+type countingParser struct{ calls *int }
+
+func (p *countingParser) ParseText(_ context.Context, _ string) (*parser.ParsedSyllabus, error) {
+	*p.calls++
+	return &parser.ParsedSyllabus{ClassName: "Counted Class"}, nil
+}
+func (p *countingParser) ParsePDF(_ context.Context, _ []byte) (*parser.ParsedSyllabus, error) {
+	*p.calls++
+	return &parser.ParsedSyllabus{ClassName: "Counted Class"}, nil
 }
 
 // TestProviderSelection verifies config.Load picks the right provider from env vars.
@@ -106,7 +119,7 @@ func TestProviderSelection(t *testing.T) {
 // TestHealthEndpoint verifies GET /health returns {"status":"ok","provider":"ollama"}.
 func TestHealthEndpoint(t *testing.T) {
 	app := fiber.New()
-	h := handler.New(&mockParser{})
+	h := handler.New(&mockParser{}, nil)
 	app.Post("/parse", h.Parse)
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"status": "ok", "provider": "ollama"})
@@ -135,6 +148,55 @@ func TestHealthEndpoint(t *testing.T) {
 	}
 	if body.Provider != "ollama" {
 		t.Errorf("provider field: got %q, want \"ollama\"", body.Provider)
+	}
+}
+
+// TestCacheHit verifies that a second request with identical content is served
+// from the cache without calling the LLM again.
+func TestCacheHit(t *testing.T) {
+	tmp, err := os.CreateTemp("", "cache-*.db")
+	if err != nil {
+		t.Fatalf("create temp file: %v", err)
+	}
+	tmp.Close()
+	defer os.Remove(tmp.Name())
+
+	c, err := cache.New(tmp.Name())
+	if err != nil {
+		t.Fatalf("cache.New: %v", err)
+	}
+	defer c.Close()
+
+	calls := 0
+	h := handler.New(&countingParser{&calls}, c)
+
+	app := fiber.New()
+	app.Post("/parse", h.Parse)
+
+	send := func() int {
+		body := `{"text":"identical syllabus text"}`
+		req := httptest.NewRequest(http.MethodPost, "/parse", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := app.Test(req)
+		if err != nil {
+			t.Fatalf("app.Test: %v", err)
+		}
+		defer resp.Body.Close()
+		return resp.StatusCode
+	}
+
+	if s := send(); s != http.StatusOK {
+		t.Fatalf("first request: got status %d, want 200", s)
+	}
+	if calls != 1 {
+		t.Errorf("after first request: LLM called %d times, want 1", calls)
+	}
+
+	if s := send(); s != http.StatusOK {
+		t.Fatalf("second request: got status %d, want 200", s)
+	}
+	if calls != 1 {
+		t.Errorf("after second request: LLM called %d times, want 1 (expected cache hit)", calls)
 	}
 }
 

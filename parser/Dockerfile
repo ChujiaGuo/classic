@@ -15,7 +15,7 @@ RUN go build -o parser ./cmd/server
 # ===== STAGE 2: Run =====
 FROM alpine:latest
 
-RUN addgroup -S app && adduser -S app -G app
+RUN addgroup -S app && adduser -S app -G app && mkdir -p /app/data && chown -R app:app /app
 USER app
 
 WORKDIR /app

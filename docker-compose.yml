@@ -18,6 +18,10 @@ services:
       - "4000:4000"
     env_file:
       - ./parser/.env
+    environment:
+      CACHE_PATH: /app/data/cache.db
+    volumes:
+      - parser-cache:/app/data
 
   webpage:
     build:
@@ -39,3 +43,6 @@ services:
       API_GATEWAY_URL: "http://gateway:8000"
     depends_on:
       - gateway
+
+volumes:
+  parser-cache:

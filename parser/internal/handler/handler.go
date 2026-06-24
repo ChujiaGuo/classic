@@ -2,19 +2,22 @@ package handler
 
 import (
 	"io"
+	"log"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
 
+	"parser/internal/cache"
 	"parser/internal/parser"
 )
 
 type Handler struct {
 	parser parser.Parser
+	cache  *cache.Cache
 }
 
-func New(p parser.Parser) *Handler {
-	return &Handler{parser: p}
+func New(p parser.Parser, c *cache.Cache) *Handler {
+	return &Handler{parser: p, cache: c}
 }
 
 // Parse handles POST /parse
@@ -54,6 +57,15 @@ func (h *Handler) parseFile(c *fiber.Ctx) error {
 		})
 	}
 
+	if h.cache != nil {
+		key := cache.Key(data)
+		var cached parser.ParsedSyllabus
+		if hit, err := h.cache.Get(key, &cached); hit && err == nil {
+			log.Printf("cache hit for %s", file.Filename)
+			return c.JSON(&cached)
+		}
+	}
+
 	var result *parser.ParsedSyllabus
 	if strings.HasSuffix(strings.ToLower(file.Filename), ".pdf") {
 		result, err = h.parser.ParsePDF(c.Context(), data)
@@ -66,6 +78,13 @@ func (h *Handler) parseFile(c *fiber.Ctx) error {
 			"error": err.Error(),
 		})
 	}
+
+	if h.cache != nil {
+		if err := h.cache.Set(cache.Key(data), result); err != nil {
+			log.Printf("cache write failed: %v", err)
+		}
+	}
+
 	return c.JSON(result)
 }
 
@@ -79,11 +98,29 @@ func (h *Handler) parseText(c *fiber.Ctx) error {
 		})
 	}
 
+	data := []byte(body.Text)
+
+	if h.cache != nil {
+		key := cache.Key(data)
+		var cached parser.ParsedSyllabus
+		if hit, err := h.cache.Get(key, &cached); hit && err == nil {
+			log.Println("cache hit for text input")
+			return c.JSON(&cached)
+		}
+	}
+
 	result, err := h.parser.ParseText(c.Context(), body.Text)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})
 	}
+
+	if h.cache != nil {
+		if err := h.cache.Set(cache.Key(data), result); err != nil {
+			log.Printf("cache write failed: %v", err)
+		}
+	}
+
 	return c.JSON(result)
 }
