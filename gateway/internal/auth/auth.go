@@ -2,7 +2,7 @@ package auth
 
 import (
 	"context"
-	"log"
+	"log/slog"
 
 	"firebase.google.com/go/v4/auth"
 	"github.com/gofiber/fiber/v2"
@@ -22,7 +22,7 @@ func FirebaseAuthMiddleware(authClient *auth.Client) fiber.Handler {
 		// Verify the session cookie
 		token, err := authClient.VerifySessionCookie(context.Background(), cookie)
 		if err != nil {
-			log.Printf("Failed to verify session cookie: %v", err)
+			slog.Warn("failed to verify session cookie", "err", err)
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"error": "invalid session",
 			})

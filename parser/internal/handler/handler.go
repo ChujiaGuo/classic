@@ -2,7 +2,7 @@ package handler
 
 import (
 	"io"
-	"log"
+	"log/slog"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -14,10 +14,11 @@ import (
 type Handler struct {
 	parser parser.Parser
 	cache  *cache.Cache
+	log    *slog.Logger
 }
 
-func New(p parser.Parser, c *cache.Cache) *Handler {
-	return &Handler{parser: p, cache: c}
+func New(p parser.Parser, c *cache.Cache, log *slog.Logger) *Handler {
+	return &Handler{parser: p, cache: c, log: log}
 }
 
 // Parse handles POST /parse
@@ -61,7 +62,7 @@ func (h *Handler) parseFile(c *fiber.Ctx) error {
 		key := cache.Key(data)
 		var cached parser.ParsedSyllabus
 		if hit, err := h.cache.Get(key, &cached); hit && err == nil {
-			log.Printf("cache hit for %s", file.Filename)
+			h.log.Info("cache hit", "file", file.Filename)
 			return c.JSON(&cached)
 		}
 	}
@@ -81,7 +82,7 @@ func (h *Handler) parseFile(c *fiber.Ctx) error {
 
 	if h.cache != nil {
 		if err := h.cache.Set(cache.Key(data), result); err != nil {
-			log.Printf("cache write failed: %v", err)
+			h.log.Warn("cache write failed", "err", err)
 		}
 	}
 
@@ -104,7 +105,7 @@ func (h *Handler) parseText(c *fiber.Ctx) error {
 		key := cache.Key(data)
 		var cached parser.ParsedSyllabus
 		if hit, err := h.cache.Get(key, &cached); hit && err == nil {
-			log.Println("cache hit for text input")
+			h.log.Info("cache hit", "source", "text")
 			return c.JSON(&cached)
 		}
 	}
@@ -118,7 +119,7 @@ func (h *Handler) parseText(c *fiber.Ctx) error {
 
 	if h.cache != nil {
 		if err := h.cache.Set(cache.Key(data), result); err != nil {
-			log.Printf("cache write failed: %v", err)
+			h.log.Warn("cache write failed", "err", err)
 		}
 	}
 

@@ -2,14 +2,16 @@ package main
 
 import (
 	"context"
-	"log"
+	"log/slog"
+	"os"
+	"time"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	anthropicoption "github.com/anthropics/anthropic-sdk-go/option"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/google/generative-ai-go/genai"
 	"google.golang.org/api/option"
+
+	"github.com/google/generative-ai-go/genai"
 
 	"parser/config"
 	"parser/internal/cache"
@@ -18,6 +20,9 @@ import (
 )
 
 func main() {
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	slog.SetDefault(logger) // routes log.* calls in config.go through slog
+
 	cfg := config.Load()
 
 	var p parser.Parser
@@ -29,7 +34,8 @@ func main() {
 	case config.ProviderGemini:
 		client, err := genai.NewClient(context.Background(), option.WithAPIKey(cfg.GeminiAPIKey))
 		if err != nil {
-			log.Fatalf("Failed to create Gemini client: %v", err)
+			logger.Error("failed to create Gemini client", "err", err)
+			os.Exit(1)
 		}
 		p = parser.NewGeminiParser(client)
 
@@ -39,23 +45,42 @@ func main() {
 
 	c, err := cache.New(cfg.CachePath)
 	if err != nil {
-		log.Fatalf("Failed to open cache: %v", err)
+		logger.Error("failed to open cache", "err", err)
+		os.Exit(1)
 	}
 	defer c.Close()
-	log.Printf("Cache: %s", cfg.CachePath)
+	logger.Info("cache ready", "path", cfg.CachePath)
 
-	h := handler.New(p, c)
+	h := handler.New(p, c, logger)
 
 	app := fiber.New(fiber.Config{
 		BodyLimit: 20 * 1024 * 1024, // 20 MB for PDF uploads
 	})
-	app.Use(logger.New())
+	app.Use(requestLogger(logger))
 
 	app.Post("/parse", h.Parse)
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"status": "ok", "provider": string(cfg.Provider)})
 	})
 
-	log.Printf("Parser service running on port %s", cfg.Port)
-	log.Fatal(app.Listen(":" + cfg.Port))
+	logger.Info("parser service starting", "port", cfg.Port)
+	if err := app.Listen(":" + cfg.Port); err != nil {
+		logger.Error("server stopped", "err", err)
+		os.Exit(1)
+	}
+}
+
+func requestLogger(logger *slog.Logger) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		start := time.Now()
+		err := c.Next()
+		logger.Info("request",
+			"status", c.Response().StatusCode(),
+			"method", c.Method(),
+			"path", c.Path(),
+			"ip", c.IP(),
+			"latency", time.Since(start).String(),
+		)
+		return err
+	}
 }

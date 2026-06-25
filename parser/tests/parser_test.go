@@ -3,6 +3,7 @@ package tests
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -119,7 +120,7 @@ func TestProviderSelection(t *testing.T) {
 // TestHealthEndpoint verifies GET /health returns {"status":"ok","provider":"ollama"}.
 func TestHealthEndpoint(t *testing.T) {
 	app := fiber.New()
-	h := handler.New(&mockParser{}, nil)
+	h := handler.New(&mockParser{}, nil, slog.New(slog.DiscardHandler))
 	app.Post("/parse", h.Parse)
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"status": "ok", "provider": "ollama"})
@@ -168,7 +169,7 @@ func TestCacheHit(t *testing.T) {
 	defer c.Close()
 
 	calls := 0
-	h := handler.New(&countingParser{&calls}, c)
+	h := handler.New(&countingParser{&calls}, c, slog.New(slog.DiscardHandler))
 
 	app := fiber.New()
 	app.Post("/parse", h.Parse)
