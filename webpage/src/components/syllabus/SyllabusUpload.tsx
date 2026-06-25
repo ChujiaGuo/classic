@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import type { ParsedSyllabus } from "@/types/syllabus";
 import SyllabusView from "./SyllabusView";
+import SyllabusError from "./SyllabusError";
 
 export default function SyllabusUpload() {
     const [file, setFile] = useState<File | null>(null);
@@ -30,7 +31,17 @@ export default function SyllabusUpload() {
             if (!res.ok) {
                 setError(data.error ?? "Parse failed");
             } else {
-                setSyllabus(data as ParsedSyllabus);
+                const parsed = data as ParsedSyllabus;
+                const hasContent =
+                    parsed.assignments?.length > 0 ||
+                    parsed.exam_dates?.length > 0 ||
+                    parsed.projects?.length > 0 ||
+                    Object.keys(parsed.meeting_times ?? {}).length > 0;
+                if (!hasContent) {
+                    setError("This doesn't look like a syllabus — please upload a course syllabus PDF or text file.");
+                } else {
+                    setSyllabus(parsed);
+                }
             }
         } catch {
             setError("Request failed — is the gateway running?");
@@ -48,6 +59,10 @@ export default function SyllabusUpload() {
 
     if (syllabus) {
         return <SyllabusView syllabus={syllabus} onReset={reset} />;
+    }
+
+    if (error) {
+        return <SyllabusError message={error} onReset={reset} />;
     }
 
     return (
@@ -85,9 +100,6 @@ export default function SyllabusUpload() {
                     </p>
                 )}
 
-                {error && (
-                    <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">{error}</p>
-                )}
             </div>
         </div>
     );

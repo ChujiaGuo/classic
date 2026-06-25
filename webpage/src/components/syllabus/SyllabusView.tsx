@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import type { ParsedSyllabus, MeetingTime } from "@/types/syllabus";
+import { downloadICS } from "@/lib/ics";
 
 export default function SyllabusView({
     syllabus,
@@ -42,12 +43,20 @@ export default function SyllabusView({
                         </p>
                     )}
                 </div>
-                <button
-                    onClick={onReset}
-                    className="shrink-0 text-xs text-neutral-400 hover:text-neutral-700 border border-neutral-200 rounded-md px-3 py-1.5 transition-colors"
-                >
-                    Parse another
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                    <button
+                        onClick={() => downloadICS(syllabus)}
+                        className="text-xs text-neutral-600 hover:text-neutral-900 border border-neutral-200 rounded-md px-3 py-1.5 transition-colors"
+                    >
+                        Export to calendar (.ics)
+                    </button>
+                    <button
+                        onClick={onReset}
+                        className="text-xs text-neutral-600 hover:text-neutral-900 border border-neutral-200 rounded-md px-3 py-1.5 transition-colors"
+                    >
+                        Parse another
+                    </button>
+                </div>
             </div>
 
             {/* Cards */}
