@@ -25,13 +25,28 @@ ollama pull gemma4:12b
 
 ## Environment Setup
 
-Each service reads from its own `.env` file. No system environment variables are required.
-
 | File | Used by |
 |---|---|
-| `gateway/.env` | gateway (already configured) |
-| `parser/.env` | parser (already configured for Ollama) |
-| `webpage/.env.local` | webpage (already configured) |
+| `.env` | Docker Compose — service URLs and Firebase build args |
+| `parser/.env` | parser — LLM provider, API keys, cache path |
+| `webpage/.env.local` | webpage — Firebase client config (local dev only) |
+
+### Service URLs
+
+Service locations are defined once in the root `.env` and substituted into `docker-compose.yml`:
+
+```sh
+GATEWAY_URL=http://localhost:8000       # browser-accessible gateway URL (baked into client bundle)
+GATEWAY_INTERNAL_URL=http://gateway:8000  # Docker-internal URL for Next.js SSR
+PARSER_URL=http://parser:4000           # Docker-internal URL for gateway → parser
+WEBPAGE_URL=http://localhost:3000       # webpage URL used by gateway for CORS
+```
+
+In production, set these to your real hostnames. When services are on separate machines, use their public addresses — Docker-internal hostnames only work within the same Compose network.
+
+Copy `.env.example` to `.env` and fill in your values.
+
+### LLM Provider
 
 To use a cloud LLM instead of Ollama, edit `parser/.env`:
 
@@ -66,7 +81,7 @@ cd webpage && npm run dev
 
 ### Development
 
-Runs all three services in containers. The parser reaches your local Ollama instance over the host network.
+Runs all three services in containers. The dev override configures `host.docker.internal` so the parser can reach Ollama running on the host machine.
 
 ```sh
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
@@ -74,11 +89,27 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 
 ### Production
 
-Uses the provider configured in `parser/.env`. Switch to a cloud provider before deploying (see Environment Setup above).
+Switch to a cloud LLM provider before deploying (see Environment Setup above), then:
 
 ```sh
 docker compose up --build
 ```
+
+For a different environment, pass a separate env file:
+
+```sh
+docker compose --env-file .env.prod up --build
+```
+
+### Running a single service
+
+```sh
+docker compose up gateway
+docker compose up parser
+docker compose up webpage
+```
+
+When services run on separate machines, set their URLs in `.env` to real hostnames instead of Docker-internal names.
 
 ## Testing
 
