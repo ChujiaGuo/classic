@@ -75,8 +75,9 @@ func (h *Handler) parseFile(c *fiber.Ctx) error {
 	}
 
 	if err != nil {
+		h.log.Error("parse failed", "file", file.Filename, "err", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
+			"error": "failed to parse syllabus",
 		})
 	}
 
@@ -112,8 +113,9 @@ func (h *Handler) parseText(c *fiber.Ctx) error {
 
 	result, err := h.parser.ParseText(c.Context(), body.Text)
 	if err != nil {
+		h.log.Error("parse failed", "source", "text", "err", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
+			"error": "failed to parse syllabus",
 		})
 	}
 

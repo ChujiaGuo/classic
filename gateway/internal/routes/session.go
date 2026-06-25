@@ -25,30 +25,38 @@ func SessionHandler(c *fiber.Ctx, cfg config.Config, authClient *firebaseAuth.Cl
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "failed to create session"})
 	}
 
-	secure := cfg.Env == "production"
+	production := cfg.Env == "production"
+	sameSite := "Lax"
+	if production {
+		sameSite = "None"
+	}
 	c.Cookie(&fiber.Cookie{
 		Name:     "session",
 		Value:    sessionCookie,
 		Expires:  time.Now().Add(duration),
 		HTTPOnly: true,
-		Secure:   secure,
+		Secure:   production,
 		Path:     "/",
-		SameSite: "None",
+		SameSite: sameSite,
 	})
 
 	return c.JSON(fiber.Map{"message": "session created"})
 }
 
 func LogoutHandler(c *fiber.Ctx, cfg config.Config) error {
-	secure := cfg.Env == "production"
+	production := cfg.Env == "production"
+	sameSite := "Lax"
+	if production {
+		sameSite = "None"
+	}
 	c.Cookie(&fiber.Cookie{
 		Name:     "session",
 		Value:    "",
 		Expires:  time.Now().Add(-1 * time.Hour),
 		HTTPOnly: true,
-		Secure:   secure,
+		Secure:   production,
 		Path:     "/",
-		SameSite: "None",
+		SameSite: sameSite,
 	})
 	return c.JSON(fiber.Map{"message": "logged out"})
 }
